@@ -1,6 +1,6 @@
 export const BRAND = {
-  name: "trazzo",
-  suffix: "", // parte del logotipo que va en naranja
+  name: "e",
+  suffix: ".trazzo", // parte del logotipo que va en naranja
   badge: "WMS   → Trazabilidad Inteligente de Inventario",
   // Texto "Powered by ..." del pie. Pon null para ocultarlo.
   poweredBy: "evidence.sys" as string | null,

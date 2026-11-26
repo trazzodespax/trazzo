@@ -1,7 +1,7 @@
-// src/lib/auth/sessions.ts
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { getCurrentOrg } from "@/lib/org/resolve";
 
 const COOKIE = "trazzo_session";
 const MAX_AGE = 60 * 60 * 12; // 12 horas (un turno)
@@ -10,6 +10,8 @@ export type Role = "OPERATOR" | "SUPERVISOR" | "ADMIN";
 
 export interface Session {
   operatorId: string;
+  orgId: string;
+  orgSlug: string;
   code: string;
   name: string;
   role: Role;
@@ -46,6 +48,8 @@ export async function getSession(): Promise<Session | null> {
     const { payload } = await jwtVerify(token, secret());
     return {
       operatorId: String(payload.operatorId),
+      orgId: String(payload.orgId),
+      orgSlug: String(payload.orgSlug),
       code: String(payload.code),
       name: String(payload.name),
       role: payload.role as Role,
@@ -60,10 +64,15 @@ export async function destroySession() {
   jar.delete(COOKIE);
 }
 
-// Úsala al inicio de cualquier página o acción protegida
+// Úsala al inicio de cualquier página o acción protegida.
+// Además de la sesión, comprueba que pertenezca a la organización del dominio actual.
 export async function requireOperator(allowed?: Role[]): Promise<Session> {
   const session = await getSession();
   if (!session) redirect("/login");
+
+  const org = await getCurrentOrg();
+  if (!org || org.id !== session.orgId) redirect("/login");
+
   if (allowed && !allowed.includes(session.role)) redirect("/dashboard");
   return session;
 }

@@ -1,8 +1,8 @@
-// src/app/api/auth/login/routes.ts
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { createSession } from "@/lib/auth/session";
+import { getCurrentOrg } from "@/lib/org/resolve";
 
 const schema = z.object({
   code: z.string().trim().min(1).max(30),
@@ -15,7 +15,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
 
+  const org = await getCurrentOrg();
+  if (!org) {
+    return NextResponse.json({ error: "Organización no encontrada" }, { status: 404 });
+  }
+
   const { data, error } = await supabaseAdmin().rpc("verify_operator_pin", {
+    p_org: org.id,
     p_code: parsed.data.code,
     p_pin: parsed.data.pin,
   });
@@ -39,6 +45,8 @@ export async function POST(req: Request) {
 
   await createSession({
     operatorId: row.operator_id,
+    orgId: org.id,
+    orgSlug: org.slug,
     code: row.operator_code,
     name: row.operator_name,
     role: row.operator_role,
